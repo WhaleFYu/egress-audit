@@ -34,6 +34,24 @@ STUB_HOSTS = [h for h in (os.environ.get("EGRESS_STUB_HOSTS") or DEFAULT_STUB_HO
 TIMEOUT = 6.0
 
 
+def _jsonable(obj):
+    """把 detail 之类的字段压成可序列化文本。
+
+    体检脚本会把异常、socket、bytes 等对象顺手塞进结果里，人在终端里看得懂，
+    但 `--json` 一输出就炸——而且是在别人的 CI 里炸，不是在我这儿炸。
+    """
+    if isinstance(obj, dict):
+        return {k: _jsonable(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_jsonable(v) for v in obj]
+    if obj is None or isinstance(obj, (str, int, float, bool)):
+        return obj
+    try:
+        return str(obj)
+    except Exception:
+        return f"<{type(obj).__name__}>"
+
+
 def _res(fn, *a, **kw):
     t = time.time()
     try:
@@ -89,10 +107,19 @@ def check_loopback() -> dict:
     srv.listen(1)
     port = srv.getsockname()[1]
     r = _res(lambda: socket.create_connection(("127.0.0.1", port), timeout=TIMEOUT))
+    detail = r.get("error")
+    if r["ok"]:
+        # 连上了：r["value"] 是一个 socket 对象，直接塞进 detail 会让 json.dumps 崩掉
+        # （GitHub runner 上就是这么暴露的：TypeError: Object of type socket is not JSON serializable）。
+        detail = "connected (then closed)"
+        try:
+            r["value"].close()
+        except Exception:
+            pass
     srv.close()
-    v = "works" if r["ok"] else ("policy-refused" if "Refused" in str(r.get("error")) else "blocked")
+    v = "works" if r["ok"] else ("policy-refused" if "Refused" in str(detail) else "blocked")
     return {"check": "loopback-self-connect", "target": f"127.0.0.1:{port} (just listened)",
-            "verdict": v, "detail": r.get("value") or r.get("error"), "ms": r["ms"]}
+            "verdict": v, "detail": detail, "ms": r["ms"]}
 
 
 # 3 ------------------------------------------------------------- 代理策略
@@ -202,7 +229,7 @@ def main() -> int:
     rows.append(check_mitm())
 
     if "--json" in sys.argv:
-        print(json.dumps({"proxy": bool(PROXY), "results": rows}, ensure_ascii=False, indent=1))
+        print(json.dumps({"proxy": bool(PROXY), "results": _jsonable(rows)}, ensure_ascii=False, indent=1))
         return 0
 
     print(f"egress audit  proxy={'set' if PROXY else 'none'}  host={socket.gethostname()}\n")
