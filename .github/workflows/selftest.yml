@@ -25,6 +25,9 @@ jobs:
       - name: 回归测试（结果必须可 JSON 序列化）
         run: python3 tests/test_jsonable.py
 
+      - name: MCP 协议层测试（离线：分发 / stdout 只准有协议行）
+        run: python3 -m unittest discover -s tests -v
+
       - name: 结果里必须有 results 数组，且不能是空壳
         run: |
           python3 - <<'PY'
