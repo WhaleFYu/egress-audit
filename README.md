@@ -72,6 +72,20 @@ python3 egress_audit.py
 零依赖（标准库），Python ≥ 3.9。`tls-issuer` 一项需要 `openssl` 命令行。
 把它挂进 agent 的启动自检，或者放进 CI，就能在"工具全都莫名其妙失败"时少猜半小时。
 
+## 结果合集：results/
+
+`results/` 存的是各家沙箱的**原始输出**，一个文件一次运行，可以直接横向对比。
+已收录：华为云 ECS 北京（2026-11-25）。格式、命名、脱敏要求见 [`results/README.md`](results/README.md)。
+
+```bash
+python3 check_results.py          # 校验 + 对比表
+python3 check_results.py --strict # CI 用
+```
+
+**欢迎 PR 你自己的机器**——GitHub Actions runner、Modal、Fly.io、国内各家容器平台都行。
+这个目录的意义就在于：把"agent 连不上"从一个模糊抱怨，变成一组可比较的事实。
+（提交前删掉 detail 里的凭据和内网主机名。）
+
 ## 限制（写清楚）
 
 - `stub-detection` 只探两条 GET 路径，桩可能只对特定方法/路径生效（`/chat/completions` 也要探一次）。

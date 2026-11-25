@@ -1,0 +1,72 @@
+{
+ "proxy": true,
+ "results": [
+  {
+   "check": "system-dns",
+   "verdict": "broken",
+   "detail": "gaierror: [Errno -3] Temporary failure in name resolution",
+   "ms": 2
+  },
+  {
+   "check": "raw-udp-dns",
+   "target": "223.5.5.5:53",
+   "verdict": "blocked",
+   "detail": "PermissionError: [Errno 1] Operation not permitted",
+   "ms": 0
+  },
+  {
+   "check": "raw-tcp",
+   "target": "public-dns-tls (1.1.1.1:443)",
+   "verdict": "refused",
+   "detail": "ConnectionRefusedError: [Errno 111] Connection refused",
+   "ms": 0
+  },
+  {
+   "check": "loopback-self-connect",
+   "target": "127.0.0.1:60197 (just listened)",
+   "verdict": "policy-refused",
+   "detail": "ConnectionRefusedError: [Errno 111] Connection refused",
+   "ms": 0
+  },
+  {
+   "check": "proxy-connect",
+   "target": "api.github.com",
+   "verdict": "tunnel-allowed",
+   "status": 200,
+   "detail": "HTTP/1.1 200 Connection Established",
+   "ms": 1
+  },
+  {
+   "check": "proxy-connect",
+   "target": "api.openai.com",
+   "verdict": "tunnel-allowed",
+   "status": 200,
+   "detail": "HTTP/1.1 200 Connection Established",
+   "ms": 2
+  },
+  {
+   "check": "stub-detection",
+   "target": "models.github.ai/models",
+   "verdict": "STUBBED-FAKE-200",
+   "status": 200,
+   "bytes": 4,
+   "ctype": "text/plain",
+   "body": "OK\r\n",
+   "ms": 1382
+  },
+  {
+   "check": "stub-detection",
+   "target": "inference.ai.azure.com/models",
+   "verdict": "error",
+   "detail": "URLError: <urlopen error Tunnel connection failed: 403 Forbidden>",
+   "ms": 285
+  },
+  {
+   "check": "tls-issuer",
+   "target": "api.github.com",
+   "verdict": "INTERCEPTED",
+   "issuer": "CN = Local Network Proxy CA, O = Local Network",
+   "sha256_prefix": "1815a07657a7e1ed"
+  }
+ ]
+}
