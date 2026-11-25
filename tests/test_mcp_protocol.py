@@ -45,7 +45,7 @@ class DispatchTest(unittest.TestCase):
 
     def test_every_verdict_has_remediation(self):
         # agent 拿到的如果不只是结论，还要有"下一步该改哪里"，否则它只会重试。
-        for v in ("PROXY-POLICY-DENY", "HANG-IN-TUNNEL", "EMPTY-REPLY", "STUB-FAKE-OK", "DNS-FAIL", "OK"):
+        for v in ("PROXY-POLICY-DENY", "HANG-IN-TUNNEL", "EMPTY-REPLY", "STUB-FAKE-OK", "RELAY-5XX", "DNS-FAIL", "OK"):
             self.assertTrue(M.REMEDIATION.get(v), v)
 
 

@@ -37,6 +37,7 @@ REMEDIATION = {
     "HANG-IN-TUNNEL": "CONNECT 成功但读不到响应：失败发生在隧道内部（策略放行后掐断，或该主机本就不提供该协议/端口）。别把它当成上游限流。",
     "EMPTY-REPLY": "403/404 且 body 恰好 0 字节。正常端点通常不会在自己的路径上回空 body，更像中间层合成的拒绝；换一条出口复测再下结论。",
     "STUB-FAKE-OK": "200 但 body 极短且不是正常 JSON。这是假成功——只看状态码会把它当成有效响应。",
+    "RELAY-5XX": "502/503/504 且 body 是出口自己写的话术（如 Upstream fetch failed）：失败在「出口 → 源站」这一段，既不是源站回错，也不是策略拒绝。别去改请求参数。",
     "UPSTREAM-ERROR": "上游正常返回了错误（4xx/5xx）。这是端点侧问题，不是网络问题。",
     "OK": "拿到了正常的 HTTP 响应；注意这只证明「这一次、从这条出口、拿到内容」，不证明长期可用。",
     "TLS-MITM": "TLS 证书的 issuer 不是公共 CA（疑似本地中间人）。响应内容不能当作端点证据。",
@@ -187,6 +188,9 @@ def diagnose(url: str, proxy: str | None = None, timeout: float = 8.0) -> dict:
         return _finish("STUB-FAKE-OK", obs)
     if status in (403, 404) and n == 0:
         return _finish("EMPTY-REPLY", obs)
+    if status in (502, 503, 504) and any(k in preview.lower() for k in
+                                        ("upstream fetch failed", "cannot connect to", "bad gateway", "proxy error")):
+        return _finish("RELAY-5XX", obs)
     if status >= 400:
         return _finish("UPSTREAM-ERROR", obs)
     return _finish("OK", obs)

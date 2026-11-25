@@ -98,7 +98,7 @@ was derived from**, so the caller can re-check rather than trust a one-liner:
 ```
 
 Verdicts: `PROXY-POLICY-DENY` · `PROXY-AUTH-REQUIRED` · `PROXY-UNREACHABLE` · `HANG-IN-TUNNEL` · `EMPTY-REPLY` ·
-`STUB-FAKE-OK` · `UPSTREAM-ERROR` · `DNS-FAIL` · `OK`. Certificates are verified by default; a non-public issuer is
+`STUB-FAKE-OK` · `RELAY-5XX` · `UPSTREAM-ERROR` · `DNS-FAIL` · `OK`. Certificates are verified by default; a non-public issuer is
 reported in `observations.tls` instead of being silently accepted.
 
 Protocol layer is covered by offline tests: `python3 -m unittest discover -s tests`.

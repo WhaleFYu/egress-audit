@@ -125,7 +125,7 @@ python3 egress_audit.py
 
 两个工具：`diagnose_url`（单条 URL）、`diagnose_hosts`（批量）。返回的不是一句结论，而是**判决 + 得出它的每一步原始观测**，
 调用方可以自己复核。判决取值：`PROXY-POLICY-DENY` / `PROXY-AUTH-REQUIRED` / `PROXY-UNREACHABLE` /
-`HANG-IN-TUNNEL` / `EMPTY-REPLY` / `STUB-FAKE-OK` / `UPSTREAM-ERROR` / `DNS-FAIL` / `OK`。
+`HANG-IN-TUNNEL` / `EMPTY-REPLY` / `STUB-FAKE-OK` / `RELAY-5XX` / `UPSTREAM-ERROR` / `DNS-FAIL` / `OK`。
 证书默认校验；遇到非公共 CA 时把 issuer 写进 `observations.tls`，而不是悄悄放过。
 
 协议层有离线测试：`python3 -m unittest discover -s tests`。
