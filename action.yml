@@ -1,0 +1,78 @@
+name: 'egress-audit'
+description: '体检 CI/沙箱的出站通道：把"连不上"拆成代理策略拒绝、网络不通、系统调用层拦截、TLS 中间人、以及假成功桩（200 + OK）'
+author: 'WhaleFYu'
+branding:
+  icon: 'radio'
+  color: 'blue'
+
+inputs:
+  proxy:
+    description: 'HTTP(S) 代理地址，例如 http://127.0.0.1:8080（大多数 CI 不需要）'
+    required: false
+    default: ''
+  stub_hosts:
+    description: '用来检测"假成功桩"的主机，逗号分隔，例如 models.example.ai'
+    required: false
+    default: ''
+  fail_on:
+    description: '出现这些 verdict 就让步骤失败（逗号分隔），例如 STUBBED-FAKE-200,INTERCEPTED。留空=只报告不失败'
+    required: false
+    default: ''
+
+outputs:
+  report:
+    description: '体检结果的 JSON 文件路径'
+    value: ${{ steps.audit.outputs.report }}
+
+runs:
+  using: composite
+  steps:
+    - id: audit
+      shell: bash
+      env:
+        INPUT_PROXY: ${{ inputs.proxy }}
+        INPUT_STUB_HOSTS: ${{ inputs.stub_hosts }}
+      run: |
+        set -u
+        rep="$RUNNER_TEMP/egress-audit.json"
+        args=(--json)
+        if [ -n "${INPUT_PROXY}" ]; then export EGRESS_PROXY="${INPUT_PROXY}"; fi
+        if [ -n "${INPUT_STUB_HOSTS}" ]; then export EGRESS_STUB_HOSTS="${INPUT_STUB_HOSTS}"; fi
+        python3 "$GITHUB_ACTION_PATH/egress_audit.py" "${args[@]}" > "$rep"
+        echo "report=$rep" >> "$GITHUB_OUTPUT"
+        python3 - "$rep" <<'PY' >> "$GITHUB_STEP_SUMMARY"
+        import json, sys
+        d = json.load(open(sys.argv[1], encoding="utf-8"))
+        rows = d.get("results", [])
+        bad = [r for r in rows if str(r.get("verdict", "")).isupper() and r.get("verdict") != "OK"]
+        print("## egress-audit\n")
+        print("| check | verdict | target | detail | ms |")
+        print("|---|---|---|---|---|")
+        for r in rows:
+            print("| {check} | {verdict} | {target} | {detail} | {ms} |".format(
+                check=r.get("check", ""), verdict=r.get("verdict", ""),
+                target=r.get("target", "-"), detail=str(r.get("detail", ""))[:90].replace("|", "\\|"),
+                ms=r.get("ms", "")))
+        if bad:
+            print("\n**需要人工看一眼的项：** " + ", ".join(f"{r.get('check')}={r.get('verdict')}" for r in bad))
+        else:
+            print("\n未发现高危信号（策略拒绝/桩/中间人）。")
+        PY
+        cat "$rep"
+
+    - if: ${{ inputs.fail_on != '' }}
+      shell: bash
+      env:
+        INPUT_FAIL_ON: ${{ inputs.fail_on }}
+      run: |
+        python3 - "$RUNNER_TEMP/egress-audit.json" <<'PY'
+        import json, os, sys
+        want = {x.strip() for x in os.environ["INPUT_FAIL_ON"].split(",") if x.strip()}
+        rows = json.load(open(sys.argv[1], encoding="utf-8")).get("results", [])
+        hits = [r for r in rows if r.get("verdict") in want]
+        if hits:
+            for r in hits:
+                print(f"::error title=egress-audit::{r.get('check')} -> {r.get('verdict')} ({r.get('detail','')[:120]})")
+            sys.exit(1)
+        print(f"fail_on={sorted(want)}：未命中，通过。")
+        PY

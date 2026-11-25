@@ -72,6 +72,22 @@ python3 egress_audit.py
 零依赖（标准库），Python ≥ 3.9。`tls-issuer` 一项需要 `openssl` 命令行。
 把它挂进 agent 的启动自检，或者放进 CI，就能在"工具全都莫名其妙失败"时少猜半小时。
 
+### 作为 GitHub Action 用
+
+仓库根目录带 `action.yml`（composite action）。适合放在"我们的 CI 突然全都连不上"这类排查里，
+或者给自建 runner 做一次基线记录：
+
+```yaml
+- uses: WhaleFYu/egress-audit@main
+  with:
+    proxy: "http://127.0.0.1:8080"                    # 可选
+    stub_hosts: "models.github.ai,inference.ai.azure.com"   # 可选：探"假成功桩"
+    fail_on: "STUBBED-FAKE-200,INTERCEPTED"           # 可选：出现这些 verdict 就红
+```
+
+它会往 `$GITHUB_STEP_SUMMARY` 写一张表（check / verdict / target / detail / ms），
+并把原始 JSON 的路径放到 `outputs.report`。默认只报告、不失败——先看清楚再决定要不要卡门。
+
 ## 结果合集：results/
 
 `results/` 存的是各家沙箱的**原始输出**，一个文件一次运行，可以直接横向对比。
