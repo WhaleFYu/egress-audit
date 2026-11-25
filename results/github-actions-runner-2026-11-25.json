@@ -1,0 +1,66 @@
+{
+ "proxy": false,
+ "results": [
+  {
+   "check": "system-dns",
+   "verdict": "works",
+   "detail": "172.66.147.243",
+   "ms": 3
+  },
+  {
+   "check": "raw-udp-dns",
+   "target": "223.5.5.5:53",
+   "verdict": "works",
+   "detail": "61 bytes from 223.5.5.5",
+   "ms": 124
+  },
+  {
+   "check": "raw-tcp",
+   "target": "public-dns-tls (1.1.1.1:443)",
+   "verdict": "works",
+   "detail": "connected",
+   "ms": 11
+  },
+  {
+   "check": "loopback-self-connect",
+   "target": "127.0.0.1:52073 (just listened)",
+   "verdict": "works",
+   "detail": "connected (then closed)",
+   "ms": 0
+  },
+  {
+   "check": "proxy-connect",
+   "target": "api.github.com",
+   "verdict": "no-proxy",
+   "detail": "-"
+  },
+  {
+   "check": "proxy-connect",
+   "target": "api.openai.com",
+   "verdict": "no-proxy",
+   "detail": "-"
+  },
+  {
+   "check": "stub-detection",
+   "target": "models.github.ai/models",
+   "verdict": "STUBBED-FAKE-200",
+   "status": 200,
+   "bytes": 4,
+   "ctype": "text/plain",
+   "body": "OK\r\n",
+   "ms": 150
+  },
+  {
+   "check": "stub-detection",
+   "target": "inference.ai.azure.com/models",
+   "verdict": "error",
+   "detail": "URLError: <urlopen error [Errno -5] No address associated with hostname>",
+   "ms": 17
+  },
+  {
+   "check": "tls-issuer",
+   "target": "api.github.com",
+   "verdict": "no-proxy"
+  }
+ ]
+}

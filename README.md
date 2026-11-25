@@ -58,6 +58,30 @@ ok_looking = len(body) <= 8 and not is_json(body)
 启发式有误报（正常 204/hostname 响应也可能很短），所以输出里同时给 `bytes`、`Content-Type` 和原文，
 让人自己判断，而不是替你下结论。
 
+## 更正：那个 4 字节的 `OK`，不是本机代理在骗我（2026-11-25 同日复测）
+
+我一开始把 `models.github.ai` 返回 `200 / 4 bytes / "OK"` 记成"受限环境的假成功桩"，暗示是本机出口在中间做了手脚。
+**这个归因是错的。** 把同一个脚本放进 **GitHub 官方 runner**（无代理、干净公网）跑了一遍：
+
+```
+$ python3 egress_audit.py --json     # GitHub-hosted runner, 无 proxy
+{ "check": "stub-detection", "target": "models.github.ai/models",
+  "verdict": "STUBBED-FAKE-200", "status": 200, "bytes": 4,
+  "ctype": "text/plain", "body": "OK\r\n" }
+```
+
+同一个响应在干净环境里照样出现 → 它来自**端点自己**（或它前面的边缘），不是我的中间层。
+原始输出见 [`results/github-actions-runner-2026-11-25.json`](results/github-actions-runner-2026-11-25.json)。
+
+修订后的结论分两层：
+
+- **观测仍然成立**：`GET /models` 回的是 4 字节非 JSON 的 `OK`；把它当"成功"的代码会在下一行拿到垃圾。
+- **解释被推翻**：这不是"沙箱代理骗人"，而是那个端点在未带凭据/未命中真实路由时的行为。
+  两者对使用者的含义不同：前者要你去查代理，后者要你去查请求方式（鉴权头、路径、方法）。
+
+教训很具体：**一次测量只能说明"发生了什么"，不能说明"是谁干的"。要归因，至少换一个环境再测一次。**
+`results/` 目录之所以按"provider-region-date"存文件，就是为了让这种对比成为默认动作，而不是灵感。
+
 ## 用法
 
 ```bash
