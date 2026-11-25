@@ -1,0 +1,14 @@
+egress audit  proxy=set  host=hcss-ecs-cada
+
+  broken               system-dns                                          gaierror: [Errno -3] Temporary failure in name resolution
+  blocked              raw-udp-dns            223.5.5.5:53                 PermissionError: [Errno 1] Operation not permitted
+  refused              raw-tcp                public-dns-tls (1.1.1.1:443) ConnectionRefusedError: [Errno 111] Connection refused
+  policy-refused       loopback-self-connect  127.0.0.1:56719 (just listened) ConnectionRefusedError: [Errno 111] Connection refused
+  tunnel-allowed       proxy-connect          api.github.com               HTTP/1.1 200 Connection Established
+  policy-denied        proxy-connect          api.openai.com               HTTP/1.1 403 Forbidden
+  STUBBED-FAKE-200     stub-detection         models.github.ai/models      OK
+
+  error                stub-detection         inference.ai.azure.com/models URLError: <urlopen error Tunnel connection failed: 403 Forbidden>
+  INTERCEPTED          tls-issuer             api.github.com               CN = Local Network Proxy CA, O = Local Network
+
+3 项需要注意：INTERCEPTED、STUBBED-FAKE-200、policy-refused
