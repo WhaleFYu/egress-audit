@@ -1,0 +1,44 @@
+name: selftest
+
+# 用 GitHub 自己的 runner 跑一遍这个 action —— 顺便给 results/ 攒一份"公共 CI 环境"的基线。
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: egress audit (as a composite action)
+        id: audit
+        uses: ./
+        with:
+          stub_hosts: "models.github.ai,inference.ai.azure.com"
+
+      - name: 报告路径
+        run: |
+          echo "report=${{ steps.audit.outputs.report }}"
+          test -s "${{ steps.audit.outputs.report }}"
+
+      - name: 结果里必须有 results 数组，且不能是空壳
+        run: |
+          python3 - <<'PY'
+          import json, os
+          p = os.environ["REPORT"]
+          d = json.load(open(p, encoding="utf-8"))
+          rows = d.get("results")
+          assert isinstance(rows, list) and len(rows) >= 5, f"results 太少: {rows}"
+          checks = {r.get("check") for r in rows}
+          assert "tls-issuer" in checks, checks
+          print(len(rows), "项检查通过")
+          PY
+        env:
+          REPORT: ${{ steps.audit.outputs.report }}
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: egress-audit-report
+          path: ${{ steps.audit.outputs.report }}
