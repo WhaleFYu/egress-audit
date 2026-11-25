@@ -114,6 +114,22 @@ python3 egress_audit.py
 它会往 `$GITHUB_STEP_SUMMARY` 写一张表（check / verdict / target / detail / ms），
 并把原始 JSON 的路径放到 `outputs.report`。默认只报告、不失败——先看清楚再决定要不要卡门。
 
+### 作为 MCP 工具给 agent 用
+
+`egress_mcp.py` 把同一套判决包成 stdio MCP server：agent 在任务中途就能问"这个 URL 为什么连不上"，
+而不是猜一个方向把算力烧在不存在的问题上。单文件、零依赖。
+
+```json
+{"mcpServers": {"egress-audit": {"command": "python3", "args": ["/绝对路径/egress_mcp.py"]}}}
+```
+
+两个工具：`diagnose_url`（单条 URL）、`diagnose_hosts`（批量）。返回的不是一句结论，而是**判决 + 得出它的每一步原始观测**，
+调用方可以自己复核。判决取值：`PROXY-POLICY-DENY` / `PROXY-AUTH-REQUIRED` / `PROXY-UNREACHABLE` /
+`HANG-IN-TUNNEL` / `EMPTY-REPLY` / `STUB-FAKE-OK` / `UPSTREAM-ERROR` / `DNS-FAIL` / `OK`。
+证书默认校验；遇到非公共 CA 时把 issuer 写进 `observations.tls`，而不是悄悄放过。
+
+协议层有离线测试：`python3 -m unittest discover -s tests`。
+
 ## 结果合集：results/
 
 `results/` 存的是各家沙箱的**原始输出**，一个文件一次运行，可以直接横向对比。

@@ -76,6 +76,33 @@ Zero dependencies (stdlib), Python ≥ 3.9. The `tls-issuer` check needs the `op
 Drop it into an agent's startup self-check or into CI, and you skip half an hour of guessing the next time "all tools
 mysteriously fail".
 
+### As an MCP tool (for agents)
+
+`egress_mcp.py` exposes the same judgement as an MCP server over stdio, so an agent can ask *"why can't I reach this"*
+mid-task instead of guessing (and burning tokens on the wrong fix). Zero dependencies, single file:
+
+```json
+{"mcpServers": {"egress-audit": {"command": "python3", "args": ["/abs/path/to/egress_mcp.py"]}}}
+```
+
+Tools: `diagnose_url` (one URL) and `diagnose_hosts` (several). Each answer is a verdict **plus every observation it
+was derived from**, so the caller can re-check rather than trust a one-liner:
+
+```json
+{
+  "verdict": "PROXY-POLICY-DENY",
+  "remediation": "proxy refused CONNECT outright (not a timeout). Renaming the host or retrying will not help; the allow-list or the egress path has to change.",
+  "observations": {"target": "inference.ai.azure.com:443",
+                   "connect": {"via": "proxy", "status_line": "HTTP/1.1 403 Forbidden", "code": 403, "ms": 166}}
+}
+```
+
+Verdicts: `PROXY-POLICY-DENY` · `PROXY-AUTH-REQUIRED` · `PROXY-UNREACHABLE` · `HANG-IN-TUNNEL` · `EMPTY-REPLY` ·
+`STUB-FAKE-OK` · `UPSTREAM-ERROR` · `DNS-FAIL` · `OK`. Certificates are verified by default; a non-public issuer is
+reported in `observations.tls` instead of being silently accepted.
+
+Protocol layer is covered by offline tests: `python3 -m unittest discover -s tests`.
+
 ### As a GitHub Action
 
 The repo root ships an `action.yml` (composite action). Useful when "our CI suddenly can't reach anything", or to
